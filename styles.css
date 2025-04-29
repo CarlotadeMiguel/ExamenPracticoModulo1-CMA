@@ -1,0 +1,231 @@
+/* Variables CSS */
+:root {
+    --primary: #4CAF50;
+    --small: #f3dd12;
+    --secondary: #f39c12;
+    --danger: #e74c3c;
+    --success: #2ecc71;
+    --bg-light: #f4f4f4;
+    --bg-dark: #333;
+    --text-light: #fff;
+    --text-dark: #333;
+    --border-color: #ddd;
+}
+
+/* Estilos generales */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.container {
+    width: 100%;
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: var(--text-light);
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Encabezado */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+header h1 {
+    font-size: 2rem;
+    margin: 0;
+}
+
+.theme-selector select {
+    padding: 5px;
+    background-color: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+/* Formulario */
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+input[type="text"], input[type="date"], select {
+    width: 80%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+button {
+    padding: 10px;
+    background-color: var(--primary);
+    color: var(--text-light);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+/* Lista de tareas */
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s;
+}
+
+li:hover {
+    background-color: var(--bg-light);
+}
+
+li input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+.priority {
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.priority.alta {
+    background-color: var(--danger);
+    color: var(--text-light);
+}
+
+.priority.media {
+    background-color: var(--secondary);
+    color: var(--text-light);
+}
+
+.priority.baja {
+    background-color: var(--small);
+    color: var(--text-light);
+}
+
+.priority.completada {
+    background-color: var(--success);
+    color: var(--text-light);
+}
+
+/* Botones de edición y eliminación */
+button.edit-btn, button.delete-btn {
+    margin-left: 10px;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button.edit-btn {
+    background-color: var(--secondary);
+    color: var(--text-light);
+}
+
+button.delete-btn {
+    background-color: var(--danger);
+    color: var(--text-light);
+}
+
+button.edit-btn:hover {
+    background-color: #e67e22;
+}
+
+button.delete-btn:hover {
+    background-color: #c0392b;
+}
+
+/* Diseño responsive (mobile-first) */
+@media (min-width: 768px) {
+    .container {
+        padding: 40px;
+    }
+
+    header h1 {
+        font-size: 2.5rem;
+    }
+
+    form {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .form-group {
+        width: 45%;
+    }
+
+    button {
+        padding: 12px 20px;
+        font-size: 1rem;
+    }
+
+    li {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+}
+
+/* Tema oscuro */
+body.dark {
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+}
+
+body.dark .container {
+    background-color: var(--bg-dark);
+}
+
+body.dark header {
+    border-bottom: 2px solid var(--border-color);
+}
+
+body.dark button {
+    background-color: var(--primary);
+    color: var(--text-light);
+}
+
+body.dark li {
+    background-color: #444;
+}
+
+body.dark .priority.alta {
+    background-color: var(--danger);
+}
+
+body.dark .priority.media {
+    background-color: var(--secondary);
+}
+
+body.dark .priority.baja {
+    background-color: var(--success);
+}
