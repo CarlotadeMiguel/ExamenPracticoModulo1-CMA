@@ -6,160 +6,290 @@ const dueDateInput = document.getElementById('due-date');
 const priorityInput = document.getElementById('priority');
 const taskList = document.getElementById('task-list');
 const filterButtons = document.querySelectorAll('.filter-btn');
+const taskCounter = document.getElementById('task-counter');
 
-// Inicializar tareas desde localStorage
+// Estado y stacks para undo/redo
 let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+let undoStack = [];
+let redoStack = [];
+const MAX_HISTORY = 50;
 
-// Función para guardar tareas en localStorage
+// Drag & Drop
+let draggedId = null;
+let dragOverId = null;
+
+// Guardar tareas en localStorage
 function saveTasks() {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
+  localStorage.setItem('tasks', JSON.stringify(tasks));
 }
 
-// Función para renderizar las tareas
+// Guardar estado para undo
+function saveStateForUndo() {
+  undoStack.push(JSON.stringify(tasks));
+  if (undoStack.length > MAX_HISTORY) undoStack.shift();
+  redoStack = [];
+}
+
+// Undo/Redo
+function undo() {
+  if (undoStack.length === 0) return;
+  redoStack.push(JSON.stringify(tasks));
+  tasks = JSON.parse(undoStack.pop());
+  saveTasks();
+  renderTasks(currentFilter);
+}
+function redo() {
+  if (redoStack.length === 0) return;
+  undoStack.push(JSON.stringify(tasks));
+  tasks = JSON.parse(redoStack.pop());
+  saveTasks();
+  renderTasks(currentFilter);
+}
+
+// Validación de fecha
+function isValidDate(dateString) {
+  const date = new Date(dateString);
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  return !isNaN(date) && date >= today;
+}
+
+// Renderizar tareas
+let currentFilter = 'all';
 function renderTasks(filtro = 'all') {
-    taskList.innerHTML = ''; // Limpiar lista antes de volver a renderizar
-    const filteredTasks = tasks.filter(task => {
-        if (filtro === 'all') return true;
-        if (filtro === 'completed') return task.completada === true;
-        if (filtro === 'pending') return task.completada === false;
+  currentFilter = filtro;
+  taskList.innerHTML = '';
+  let filteredTasks = tasks;
+  if (filtro === 'completed') filteredTasks = tasks.filter(t => t.completada);
+  if (filtro === 'pending') filteredTasks = tasks.filter(t => !t.completada);
+
+  filteredTasks.forEach(task => {
+    const li = document.createElement('li');
+    li.classList.add('task-item');
+    li.setAttribute('data-id', task.id);
+    li.draggable = true;
+
+    // Drag & Drop events
+    li.addEventListener('dragstart', (e) => {
+      draggedId = task.id;
+      li.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    li.addEventListener('dragend', () => {
+      draggedId = null;
+      li.classList.remove('dragging');
+    });
+    li.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dragOverId = task.id;
+      li.classList.add('drag-over');
+    });
+    li.addEventListener('dragleave', () => {
+      li.classList.remove('drag-over');
+    });
+    li.addEventListener('drop', (e) => {
+      e.preventDefault();
+      li.classList.remove('drag-over');
+      if (draggedId === null || draggedId === dragOverId) return;
+      saveStateForUndo();
+      const fromIdx = tasks.findIndex(t => t.id === draggedId);
+      const toIdx = tasks.findIndex(t => t.id === dragOverId);
+      const [moved] = tasks.splice(fromIdx, 1);
+      tasks.splice(toIdx, 0, moved);
+      saveTasks();
+      renderTasks(currentFilter);
     });
 
-    filteredTasks.forEach(task => {
-        const li = document.createElement('li');
-        li.classList.add('task-item');
-        li.setAttribute('data-id', task.id);
-        li.setAttribute('draggable', true);
+    // Edición inline
+    if (task.editing) {
+      const editForm = document.createElement('form');
+      editForm.className = 'edit-form';
 
-        const img = document.createElement('img');
-        img.src = "https://picsum.photos/150";
-        img.alt = 'Imagen de tarea';
+      const textInput = document.createElement('input');
+      textInput.type = 'text';
+      textInput.value = task.texto;
+      textInput.required = true;
 
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = task.completada;
-        checkbox.addEventListener('change', () => toggleCompletion(task.id));
+      const dateInput = document.createElement('input');
+      dateInput.type = 'date';
+      dateInput.value = task.fecha;
+      dateInput.required = true;
 
-        const taskText = document.createElement('span');
-        taskText.textContent = task.texto;
+      const buttonContainer = document.createElement('div');
+      buttonContainer.className = 'edit-buttons';
 
-        const dueDate = document.createElement('span');
-        dueDate.textContent = ` ${task.fecha}`;
-
-        const priorityTag = document.createElement('span');
-      
-        if (task.completada){
-            priorityTag.textContent = 'completada';
-            priorityTag.classList.add('priority', 'completada');
-        } else {
-            priorityTag.textContent = task.prioridad;
-            priorityTag.classList.add('priority', task.prioridad);
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.textContent = 'Guardar';
+      saveBtn.addEventListener('click', () => {
+        if (textInput.value.trim() === '' || !isValidDate(dateInput.value)) {
+          alert('¡Texto vacío o fecha inválida!');
+          return;
         }
-
-        const editButton = document.createElement('button');
-        editButton.classList.add('edit-btn');
-        editButton.textContent = 'Editar';
-        editButton.addEventListener('click', () => editTask(task.id));
-
-        const deleteButton = document.createElement('button');
-        deleteButton.classList.add('delete-btn');
-        deleteButton.textContent = 'Eliminar';
-        deleteButton.addEventListener('click', () => deleteTask(task.id));
-
-        
-        li.appendChild(checkbox);
-        li.appendChild(taskText);
-        li.appendChild(dueDate);
-        li.appendChild(priorityTag);
-        li.appendChild(img);
-        li.appendChild(editButton);
-        li.appendChild(deleteButton);
-
-        taskList.appendChild(li);
-    });
-}
-
-// Función para agregar una nueva tarea
-function addTask(event) {
-    event.preventDefault();
-
-    // Validar que el campo de texto no esté vacío
-    if (taskInput.value.trim() === '') {
-        alert('Por favor, ingresa una tarea.');
-        return;
-    }
-
-    const newTask = {
-        id: Date.now(),  // Usamos el timestamp como id único
-        texto: taskInput.value.trim(),
-        fecha: dueDateInput.value,
-        prioridad: priorityInput.value,
-        completada: false
-    };
-
-    tasks.push(newTask);
-    saveTasks();
-    renderTasks();
-    taskForm.reset(); // Limpiar el formulario después de agregar la tarea
-}
-
-// Función para marcar tarea como completada
-function toggleCompletion(taskId) {
-    const task = tasks.find(task => task.id === taskId);
-    task.completada = !task.completada;
-    saveTasks();
-    renderTasks();
-}
-
-// Función para eliminar una tarea
-function deleteTask(taskId) {
-    tasks = tasks.filter(task => task.id !== taskId);
-    saveTasks();
-    renderTasks();
-}
-
-// Función para editar una tarea 
-function editTask(taskId) {
-    const task = tasks.find(task => task.id === taskId);
-    const newText = prompt('Edita tu tarea:', task.texto);
-    if (newText !== null && newText.trim() !== '') {
-        task.texto = newText.trim();
+        saveStateForUndo();
+        task.texto = textInput.value.trim();
+        task.fecha = dateInput.value;
+        delete task.editing;
         saveTasks();
-        renderTasks();
+        renderTasks(currentFilter);
+      });
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.textContent = 'Cancelar';
+      cancelBtn.addEventListener('click', () => {
+        delete task.editing;
+        renderTasks(currentFilter);
+      });
+
+      buttonContainer.append(saveBtn, cancelBtn);
+      editForm.append(textInput, dateInput, buttonContainer);
+
+      editForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        saveBtn.click();
+      });
+
+      li.appendChild(editForm);
+      taskList.appendChild(li);
+      return;
     }
-}
 
-// Función para filtrar tareas (Todas, Completadas, Pendientes)
-function setFilter(event) {
-    const filtro = event.target.dataset.filter;
-    renderTasks(filtro);
-}
+    // Checkbox
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = task.completada;
+    checkbox.addEventListener('change', () => {
+      saveStateForUndo();
+      task.completada = !task.completada;
+      saveTasks();
+      renderTasks(currentFilter);
+    });
 
-// Agregar event listener para el formulario
-taskForm.addEventListener('submit', addTask);
+    // Texto
+    const taskText = document.createElement('span');
+    taskText.textContent = task.texto;
 
-// Agregar event listeners para los botones de filtro
-filterButtons.forEach(button => {
-    button.addEventListener('click', setFilter);
-});
+    // Fecha
+    const dueDate = document.createElement('span');
+    dueDate.textContent = ` ${task.fecha}`;
 
-// Función para cambiar el tema
-function changeTheme(event) {
-    const selectedTheme = event.target.value;
-    if (selectedTheme === 'dark') {
-        document.body.classList.add('dark');
-        document.body.classList.remove('light');
+    // Prioridad
+    const priorityTag = document.createElement('span');
+    if (task.completada) {
+      priorityTag.textContent = 'completada';
+      priorityTag.classList.add('priority', 'completada');
     } else {
-        document.body.classList.add('light');
-        document.body.classList.remove('dark');
+      priorityTag.textContent = task.prioridad;
+      priorityTag.classList.add('priority', task.prioridad);
     }
-    localStorage.setItem('theme', selectedTheme);
+
+    // Imagen
+    const img = document.createElement('img');
+    img.src = "https://picsum.photos/150";
+    img.alt = 'Imagen de tarea';
+
+    // Botón Editar
+    const editButton = document.createElement('button');
+    editButton.classList.add('edit-btn');
+    editButton.textContent = 'Editar';
+    editButton.addEventListener('click', () => {
+      task.editing = true;
+      renderTasks(currentFilter);
+    });
+
+    // Botón Eliminar
+    const deleteButton = document.createElement('button');
+    deleteButton.classList.add('delete-btn');
+    deleteButton.textContent = 'Eliminar';
+    deleteButton.addEventListener('click', () => {
+      saveStateForUndo();
+      tasks = tasks.filter(t => t.id !== task.id);
+      saveTasks();
+      renderTasks(currentFilter);
+    });
+
+    // Estructura visual
+    const taskContent = document.createElement('div');
+    taskContent.className = 'task-content';
+    taskContent.append(checkbox, taskText, dueDate, priorityTag);
+
+    li.append(taskContent, img, editButton, deleteButton);
+    taskList.appendChild(li);
+  });
+
+  // Contador de tareas pendientes
+  if (taskCounter) {
+    const pendientes = tasks.filter(t => !t.completada).length;
+    taskCounter.textContent = `Tareas pendientes: ${pendientes}`;
+  }
 }
 
-// Establecer el tema inicial
-const savedTheme = localStorage.getItem('theme') || 'light';
-document.body.classList.add(savedTheme);
-themeSelector.value = savedTheme;
-themeSelector.addEventListener('change', changeTheme);
+// Añadir tarea
+function addTask(event) {
+  event.preventDefault();
+  if (taskInput.value.trim() === '') {
+    alert('Por favor, ingresa una tarea.');
+    return;
+  }
+  if (!isValidDate(dueDateInput.value)) {
+    alert('Fecha inválida! Debe ser hoy o posterior');
+    return;
+  }
+  saveStateForUndo();
+  const newTask = {
+    id: Date.now(),
+    texto: taskInput.value.trim(),
+    fecha: dueDateInput.value,
+    prioridad: priorityInput.value,
+    completada: false
+  };
+  tasks.push(newTask);
+  saveTasks();
+  renderTasks(currentFilter);
+  taskForm.reset();
+}
 
-// Renderizar tareas al cargar la página
-renderTasks();
+// Filtros
+function setFilter(event) {
+  const filtro = event.target.dataset.filter;
+  renderTasks(filtro);
+}
+
+// Tema
+function changeTheme(event) {
+  const selectedTheme = event.target.value;
+  if (selectedTheme === 'dark') {
+    document.body.classList.add('dark');
+    document.body.classList.remove('light');
+  } else {
+    document.body.classList.add('light');
+    document.body.classList.remove('dark');
+  }
+  localStorage.setItem('theme', selectedTheme);
+}
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', () => {
+  // Tema
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  document.body.classList.add(savedTheme);
+  themeSelector.value = savedTheme;
+  themeSelector.addEventListener('change', changeTheme);
+
+  // Undo/Redo UI
+  const controls = document.createElement('div');
+  controls.className = 'controls';
+  controls.innerHTML = `
+    <button type="button" id="undo-btn" title="Deshacer">↩️</button>
+    <button type="button" id="redo-btn" title="Rehacer">↪️</button>
+  `;
+  document.body.appendChild(controls);
+  document.getElementById('undo-btn').onclick = undo;
+  document.getElementById('redo-btn').onclick = redo;
+
+  // Eventos
+  taskForm.addEventListener('submit', addTask);
+  filterButtons.forEach(button => button.addEventListener('click', setFilter));
+  renderTasks();
+});
