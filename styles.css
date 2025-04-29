@@ -12,6 +12,7 @@
     --text-light: #ffffff;
     --text-dark: #1a1a1a;
     --border-color: #e0e0e0;
+    --hover: #008ecf;
     --shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
     --radius: 12px;
     --transition: all 0.3s ease;
@@ -87,7 +88,7 @@ header h1 {
 }
 
 .filter-btn:hover {
-    background-color: #0392d4;
+    background-color: var(--hover);
 }
 
 /* Formulario */
@@ -132,7 +133,7 @@ button[type="submit"] {
 }
 
 button[type="submit"]:hover {
-    background-color: #008ecf;
+    background-color: var(--hover);
 }
 
 /* Lista de tareas: cuadrícula flexible */
@@ -274,7 +275,7 @@ button.delete-btn {
 }
 
 button.edit-btn:hover {
-    background-color: #41bffa;
+    background-color: var(--hover);
 }
 
 button.delete-btn:hover {
@@ -357,7 +358,7 @@ button.delete-btn:hover {
 }
 
 .edit-buttons button[type="button"]:first-child:hover {
-    background: #41bffa;
+    background: var(--hover);
 }
 
 .edit-buttons button[type="button"]:last-child {
@@ -393,6 +394,22 @@ button.delete-btn:hover {
 #undo-btn:hover,
 #redo-btn:hover {
     transform: scale(1.1);
+}
+
+/*Boton de importar*/
+#importButton {
+    padding: 0.5rem 1rem;
+    background-color: var(--primary);
+    color: var(--text-light);
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: var(--transition);
+    margin: 0.25rem;
+}
+
+#importButton:hover {
+    background-color: var(--hover);
 }
 
 /* Tema oscuro */

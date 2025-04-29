@@ -78,6 +78,48 @@ function deleteTaskWithAnimation(taskId) {
     }, { once: true });
 }
 
+// Función para importar CSV
+function importFromCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const csvData = e.target.result;
+        const rows = csvData.split('\n').slice(1); // Saltar encabezado
+        
+        const importedTasks = rows.map(row => {
+            const [id, textoRaw, fecha, prioridad, completadaRaw, imgSrc] = row.split(',');
+            
+            // Limpiar y validar datos
+            const texto = textoRaw.replace(/^"|"$/g, '').trim();
+            const completada = completadaRaw.replace(/^"|"$/g, '').trim() === 'Sí';
+            
+            if (!isValidDate(fecha) || !['alta', 'media', 'baja'].includes(prioridad.toLowerCase())) {
+                return null;
+            }
+
+            return {
+                id: parseInt(id),
+                texto: texto,
+                fecha: fecha,
+                prioridad: prioridad.toLowerCase(),
+                completada: completada,
+                imgSrc: imgSrc || 'https://picsum.photos/150'
+            };
+        }).filter(task => task !== null);
+
+        saveStateForUndo();
+        tasks = [...tasks, ...importedTasks];
+        saveTasks();
+        renderTasks(currentFilter);
+        alert(`Se importaron ${importedTasks.length} tareas correctamente`);
+    };
+    
+    reader.readAsText(file);
+}
+
+
 // Exportar tareas a CSV
 function exportToCSV() {
     const csvContent = [
@@ -355,11 +397,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Eventos
     taskForm.addEventListener('submit', addTask);
     filterButtons.forEach(button => button.addEventListener('click', setFilter));
+
     // Notificaciones
     if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
         Notification.requestPermission();
     }
     checkDueTasks();
+
+    document.getElementById('importFile').addEventListener('change', importFromCSV);
 
     renderTasks();
 });
