@@ -49,6 +49,8 @@
             <button type="submit">Agregar Tarea</button>
         </form>
 
+        <p id="task-counter"></p>
+
         <!-- Lista de tareas -->
         <ul id="task-list">
             <!-- Las tareas se agregarán aquí -->
@@ -61,6 +63,7 @@
         <div class="controls">
             <button id="undo-btn" onclick="undo()" >↩️</button>
             <button id="redo-btn" onclick="redo()">↪️</button>
+            <button class="filter-btn" onclick = "exportToCSV()">Exportar CSV</button>
         </div>
     </footer>
 
