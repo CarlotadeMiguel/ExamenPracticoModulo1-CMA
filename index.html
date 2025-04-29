@@ -1,18 +1,57 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+    <title>Gestor de Tareas</title>
     <link rel="stylesheet" href="styles.css">
-
-    <title>Document</title>
 </head>
-
 <body>
+    <div class="container">
+        <!-- Encabezado -->
+        <header>
+            <h1>Gestor de Tareas</h1>
+            <div class="theme-selector">
+                <label for="theme">Seleccionar Tema: </label>
+                <select id="theme">
+                    <option value="light">Claro</option>
+                    <option value="dark">Oscuro</option>
+                </select>
+                <div>
+                    <button class="filter-btn" data-filter="all">Todas</button>
+                    <button class="filter-btn" data-filter="completed">Completadas</button>
+                    <button class="filter-btn" data-filter="pending">Pendientes</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Formulario para agregar tareas -->
+        <form id="task-form">
+            <div class="form-group">
+                <label for="task">Tarea:</label>
+                <input type="text" id="task" placeholder="Escribe una tarea" required>
+            </div>
+            <div class="form-group">
+                <label for="due-date">Fecha límite:</label>
+                <input type="date" id="due-date" required>
+            </div>
+            <div class="form-group">
+                <label for="priority">Prioridad:</label>
+                <select id="priority" required>
+                    <option value="alta">Alta</option>
+                    <option value="media">Media</option>
+                    <option value="baja">Baja</option>
+                </select>
+            </div>
+            <button type="submit">Agregar Tarea</button>
+        </form>
+
+        <!-- Lista de tareas -->
+        <ul id="task-list">
+            <!-- Las tareas se agregarán aquí -->
+        </ul>
+    </div>
 
     <script src="app.js"></script>
 </body>
-
 </html>
