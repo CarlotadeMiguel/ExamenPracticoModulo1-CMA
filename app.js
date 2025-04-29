@@ -87,35 +87,49 @@ function importFromCSV(event) {
     reader.onload = (e) => {
         const csvData = e.target.result;
         const rows = csvData.split('\n').slice(1); // Saltar encabezado
-        
-        const importedTasks = rows.map(row => {
-            const [id, textoRaw, fecha, prioridad, completadaRaw, imgSrc] = row.split(',');
-            
-            // Limpiar y validar datos
-            const texto = textoRaw.replace(/^"|"$/g, '').trim();
-            const completada = completadaRaw.replace(/^"|"$/g, '').trim() === 'Sí';
-            
-            if (!isValidDate(fecha) || !['alta', 'media', 'baja'].includes(prioridad.toLowerCase())) {
-                return null;
-            }
 
-            return {
+        // IDs existentes
+        const existingIds = new Set(tasks.map(t => t.id));
+        let importedCount = 0;
+
+
+        rows.forEach(row => {
+            const [id, textoRaw, fecha, prioridad, completadaRaw, imgSrc] = row.split(',');
+            if (!id || !textoRaw) return; // Saltar vacíos
+
+            const texto = textoRaw.replace(/^"|"$/g, '').trim();
+            const completada = completadaRaw && completadaRaw.replace(/^"|"$/g, '').trim() === 'Sí';
+            const prioridadL = prioridad && prioridad.toLowerCase().trim();
+
+            if (!isValidDate(fecha) || !['alta', 'media', 'baja'].includes(prioridadL)) return;
+
+            const taskObj = {
                 id: parseInt(id),
                 texto: texto,
                 fecha: fecha,
-                prioridad: prioridad.toLowerCase(),
+                prioridad: prioridadL,
                 completada: completada,
                 imgSrc: imgSrc || 'https://picsum.photos/150'
             };
-        }).filter(task => task !== null);
+
+            const idx = tasks.findIndex(t => t.id === taskObj.id);
+            if (idx === -1) {
+                tasks.push(taskObj);
+                importedCount++;
+            }
+        });
 
         saveStateForUndo();
-        tasks = [...tasks, ...importedTasks];
         saveTasks();
         renderTasks(currentFilter);
-        alert(`Se importaron ${importedTasks.length} tareas correctamente`);
+
+        alert(
+            importedCount > 0
+                ? `Se importaron ${importedCount} tareas nuevas.`
+                : "No se importaron tareas nuevas (los IDs ya existen)."
+        );
     };
-    
+
     reader.readAsText(file);
 }
 
@@ -264,7 +278,7 @@ function renderTasks(filtro = 'all') {
                 renderTasks(currentFilter);
             });
             buttonContainer.append(saveBtn, cancelBtn);
-            editForm.append(textInput, dateInput,srcImg, prioritySelect, buttonContainer);
+            editForm.append(textInput, dateInput, srcImg, prioritySelect, buttonContainer);
             editForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 saveBtn.click();
