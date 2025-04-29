@@ -13,6 +13,7 @@ let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 let undoStack = [];
 let redoStack = [];
 const MAX_HISTORY = 50;
+const today = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
 
 // Drag & Drop
 let draggedId = null;
@@ -113,6 +114,7 @@ function renderTasks(filtro = 'all') {
             const dateInput = document.createElement('input');
             dateInput.type = 'date';
             dateInput.value = task.fecha;
+            dateInput.setAttribute('min', today);
             dateInput.required = true;
 
             const prioritySelect = document.createElement('select');
@@ -287,8 +289,13 @@ document.addEventListener('DOMContentLoaded', () => {
     themeSelector.value = savedTheme;
     themeSelector.addEventListener('change', changeTheme);
 
+    //Seleccionar minimo la fecha de hoy
+    const dateInput = document.getElementById('due-date');
+    dateInput.setAttribute('min', today);
+
     // Eventos
     taskForm.addEventListener('submit', addTask);
     filterButtons.forEach(button => button.addEventListener('click', setFilter));
     renderTasks();
+
 });

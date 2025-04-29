@@ -166,7 +166,6 @@ ul#task-list li {
     flex-direction: column;
     justify-content: flex-start;
     gap: 0.75rem;
-    /* espaciado entre elementos internos */
     min-height: 320px;
 }
 
