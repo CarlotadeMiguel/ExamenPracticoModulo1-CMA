@@ -22,6 +22,7 @@ let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 let undoStack = [];
 let redoStack = [];
 const MAX_HISTORY = 50;
+let currentFilter = 'all';
 const today = new Date().toISOString().split('T')[0];
 
 // Drag & Drop
@@ -64,8 +65,64 @@ function isValidDate(dateString) {
     return !isNaN(date) && date >= today;
 }
 
-// Renderizar tareas
-let currentFilter = 'all';
+// Animación de eliminación
+function deleteTaskWithAnimation(taskId) {
+    const taskElement = document.querySelector(`[data-id="${taskId}"]`);
+    if (!taskElement) return;
+    taskElement.classList.add('fade-out');
+    taskElement.addEventListener('animationend', () => {
+        tasks = tasks.filter(t => t.id !== taskId);
+        saveTasks();
+        renderTasks(currentFilter);
+    }, { once: true });
+}
+
+// Exportar tareas a CSV
+function exportToCSV() {
+    const csvContent = [
+        ['ID', 'Tarea', 'Fecha', 'Prioridad', 'Completada'],
+        ...tasks.map(task => [
+            task.id,
+            `"${task.texto.replace(/"/g, '""')}"`,
+            task.fecha,
+            task.prioridad,
+            task.completada ? 'Sí' : 'No'
+        ])
+    ].map(e => e.join(',')).join('\n');
+
+    const blob = new Blob(["\ufeff", csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `tareas_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+}
+
+// Notificaciones para tareas próximas a vencer
+function checkDueTasks() {
+    if (!("Notification" in window)) return;
+    tasks.forEach(task => {
+        if (!task.completada) {
+            const dueDate = new Date(task.fecha);
+            const now = new Date();
+            const timeDiff = dueDate - now;
+            if (timeDiff > 0 && timeDiff <= 86400000) { // 24h
+                setTimeout(() => {
+                    if (Notification.permission === "granted") {
+                        new Notification('Tarea próxima a vencer', {
+                            body: `La tarea "${task.texto}" vence hoy`,
+                            icon: 'https://picsum.photos/150'
+                        });
+                    }
+                }, Math.max(0, timeDiff - 600000)); // 10 min antes
+            }
+        }
+    });
+}
+
+// Renderizado eficiente de tareas
 function renderTasks(filtro = 'all') {
     currentFilter = filtro;
     taskList.innerHTML = '';
@@ -73,7 +130,6 @@ function renderTasks(filtro = 'all') {
     if (filtro === 'completed') filteredTasks = tasks.filter(t => t.completada);
     if (filtro === 'pending') filteredTasks = tasks.filter(t => !t.completada);
 
-    // Usar DocumentFragment para optimizar renderizado
     const fragment = document.createDocumentFragment();
 
     filteredTasks.forEach(task => {
@@ -121,13 +177,11 @@ function renderTasks(filtro = 'all') {
             textInput.type = 'text';
             textInput.value = task.texto;
             textInput.required = true;
-
             const dateInput = document.createElement('input');
             dateInput.type = 'date';
             dateInput.value = task.fecha;
             dateInput.setAttribute('min', today);
             dateInput.required = true;
-
             const prioritySelect = document.createElement('select');
             ['alta', 'media', 'baja'].forEach(level => {
                 const opt = document.createElement('option');
@@ -136,7 +190,6 @@ function renderTasks(filtro = 'all') {
                 if (task.prioridad === level) opt.selected = true;
                 prioritySelect.appendChild(opt);
             });
-
             const buttonContainer = document.createElement('div');
             buttonContainer.className = 'edit-buttons';
             const saveBtn = document.createElement('button');
@@ -155,7 +208,6 @@ function renderTasks(filtro = 'all') {
                 saveTasks();
                 renderTasks(currentFilter);
             });
-
             const cancelBtn = document.createElement('button');
             cancelBtn.type = 'button';
             cancelBtn.textContent = 'Cancelar';
@@ -163,7 +215,6 @@ function renderTasks(filtro = 'all') {
                 delete task.editing;
                 renderTasks(currentFilter);
             });
-
             buttonContainer.append(saveBtn, cancelBtn);
             editForm.append(textInput, dateInput, prioritySelect, buttonContainer);
             editForm.addEventListener('submit', (e) => {
@@ -218,15 +269,13 @@ function renderTasks(filtro = 'all') {
             renderTasks(currentFilter);
         });
 
-        // Botón Eliminar
+        // Botón Eliminar (con animación)
         const deleteButton = document.createElement('button');
         deleteButton.classList.add('delete-btn');
         deleteButton.textContent = 'Eliminar';
         deleteButton.addEventListener('click', () => {
             saveStateForUndo();
-            tasks = tasks.filter(t => t.id !== task.id);
-            saveTasks();
-            renderTasks(currentFilter);
+            deleteTaskWithAnimation(task.id);
         });
 
         // Estructura visual
@@ -278,16 +327,10 @@ function setFilter(event) {
     renderTasks(filtro);
 }
 
-// Tema
+// Tema (persistente)
 function changeTheme(event) {
     const selectedTheme = event.target.value;
-    if (selectedTheme === 'dark') {
-        document.body.classList.add('dark');
-        document.body.classList.remove('light');
-    } else {
-        document.body.classList.add('light');
-        document.body.classList.remove('dark');
-    }
+    document.body.className = selectedTheme;
     localStorage.setItem('theme', selectedTheme);
 }
 
@@ -295,16 +338,21 @@ function changeTheme(event) {
 document.addEventListener('DOMContentLoaded', () => {
     // Tema
     const savedTheme = localStorage.getItem('theme') || 'light';
-    document.body.classList.add(savedTheme);
+    document.body.className = savedTheme;
     themeSelector.value = savedTheme;
     themeSelector.addEventListener('change', changeTheme);
 
-    //Seleccionar minimo la fecha de hoy
+    // Fecha mínima hoy
     dueDateInput.setAttribute('min', today);
 
     // Eventos
     taskForm.addEventListener('submit', addTask);
     filterButtons.forEach(button => button.addEventListener('click', setFilter));
+    // Notificaciones
+    if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+    }
+    checkDueTasks();
 
     renderTasks();
 });
