@@ -13,6 +13,7 @@ const taskForm = document.getElementById('task-form');
 const taskInput = document.getElementById('task');
 const dueDateInput = document.getElementById('due-date');
 const priorityInput = document.getElementById('priority');
+const imgSrc = document.getElementById('imgSrc');
 const taskList = document.getElementById('task-list');
 const filterButtons = document.querySelectorAll('.filter-btn');
 const taskCounter = document.getElementById('task-counter');
@@ -80,13 +81,14 @@ function deleteTaskWithAnimation(taskId) {
 // Exportar tareas a CSV
 function exportToCSV() {
     const csvContent = [
-        ['ID', 'Tarea', 'Fecha', 'Prioridad', 'Completada'],
+        ['ID', 'Tarea', 'Fecha', 'Prioridad', 'Completada', 'Imagen'],
         ...tasks.map(task => [
             task.id,
             `"${task.texto.replace(/"/g, '""')}"`,
             task.fecha,
             task.prioridad,
-            task.completada ? 'Sí' : 'No'
+            task.completada ? 'Sí' : 'No',
+            task.imgSrc
         ])
     ].map(e => e.join(',')).join('\n');
 
@@ -182,6 +184,9 @@ function renderTasks(filtro = 'all') {
             dateInput.value = task.fecha;
             dateInput.setAttribute('min', today);
             dateInput.required = true;
+            const srcImg = document.createElement('input');
+            srcImg.type = 'text';
+            srcImg.value = task.imgSrc;
             const prioritySelect = document.createElement('select');
             ['alta', 'media', 'baja'].forEach(level => {
                 const opt = document.createElement('option');
@@ -204,6 +209,7 @@ function renderTasks(filtro = 'all') {
                 task.texto = textInput.value.trim();
                 task.fecha = dateInput.value;
                 task.prioridad = prioritySelect.value;
+                task.imgSrc = srcImg.value;
                 delete task.editing;
                 saveTasks();
                 renderTasks(currentFilter);
@@ -216,7 +222,7 @@ function renderTasks(filtro = 'all') {
                 renderTasks(currentFilter);
             });
             buttonContainer.append(saveBtn, cancelBtn);
-            editForm.append(textInput, dateInput, prioritySelect, buttonContainer);
+            editForm.append(textInput, dateInput,srcImg, prioritySelect, buttonContainer);
             editForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 saveBtn.click();
@@ -257,7 +263,7 @@ function renderTasks(filtro = 'all') {
 
         // Imagen
         const img = document.createElement('img');
-        img.src = "https://picsum.photos/150";
+        img.src = task.imgSrc;
         img.alt = 'Imagen de tarea';
 
         // Botón Editar
@@ -313,7 +319,8 @@ function addTask(event) {
         texto: taskInput.value.trim(),
         fecha: dueDateInput.value,
         prioridad: priorityInput.value,
-        completada: false
+        completada: false,
+        imgSrc: imgSrc.value || 'https://picsum.photos/150',
     };
     tasks.push(newTask);
     saveTasks();
