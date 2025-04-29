@@ -1,4 +1,13 @@
-// Obtener los elementos del DOM
+// Evitar escrituras excesivas en localStorage
+function debounce(fn, delay = 250) {
+    let timer;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+}
+
+// Selección y cacheo de elementos DOM
 const themeSelector = document.getElementById('theme');
 const taskForm = document.getElementById('task-form');
 const taskInput = document.getElementById('task');
@@ -13,16 +22,16 @@ let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 let undoStack = [];
 let redoStack = [];
 const MAX_HISTORY = 50;
-const today = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+const today = new Date().toISOString().split('T')[0];
 
 // Drag & Drop
 let draggedId = null;
 let dragOverId = null;
 
-// Guardar tareas en localStorage
-function saveTasks() {
+// Guardar tareas en localStorage (optimizado con debounce)
+const saveTasks = debounce(() => {
     localStorage.setItem('tasks', JSON.stringify(tasks));
-}
+});
 
 // Guardar estado para undo
 function saveStateForUndo() {
@@ -63,6 +72,9 @@ function renderTasks(filtro = 'all') {
     let filteredTasks = tasks;
     if (filtro === 'completed') filteredTasks = tasks.filter(t => t.completada);
     if (filtro === 'pending') filteredTasks = tasks.filter(t => !t.completada);
+
+    // Usar DocumentFragment para optimizar renderizado
+    const fragment = document.createDocumentFragment();
 
     filteredTasks.forEach(task => {
         const li = document.createElement('li');
@@ -105,7 +117,6 @@ function renderTasks(filtro = 'all') {
         if (task.editing) {
             const editForm = document.createElement('form');
             editForm.className = 'edit-form';
-
             const textInput = document.createElement('input');
             textInput.type = 'text';
             textInput.value = task.texto;
@@ -128,7 +139,6 @@ function renderTasks(filtro = 'all') {
 
             const buttonContainer = document.createElement('div');
             buttonContainer.className = 'edit-buttons';
-
             const saveBtn = document.createElement('button');
             saveBtn.type = 'button';
             saveBtn.textContent = 'Guardar';
@@ -156,14 +166,12 @@ function renderTasks(filtro = 'all') {
 
             buttonContainer.append(saveBtn, cancelBtn);
             editForm.append(textInput, dateInput, prioritySelect, buttonContainer);
-
             editForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 saveBtn.click();
             });
-
             li.appendChild(editForm);
-            taskList.appendChild(li);
+            fragment.appendChild(li);
             return;
         }
 
@@ -227,8 +235,10 @@ function renderTasks(filtro = 'all') {
         taskContent.append(checkbox, taskText, dueDate, priorityTag);
 
         li.append(taskContent, img, editButton, deleteButton);
-        taskList.appendChild(li);
+        fragment.appendChild(li);
     });
+
+    taskList.appendChild(fragment);
 
     // Contador de tareas pendientes
     if (taskCounter) {
@@ -290,12 +300,11 @@ document.addEventListener('DOMContentLoaded', () => {
     themeSelector.addEventListener('change', changeTheme);
 
     //Seleccionar minimo la fecha de hoy
-    const dateInput = document.getElementById('due-date');
-    dateInput.setAttribute('min', today);
+    dueDateInput.setAttribute('min', today);
 
     // Eventos
     taskForm.addEventListener('submit', addTask);
     filterButtons.forEach(button => button.addEventListener('click', setFilter));
-    renderTasks();
 
+    renderTasks();
 });
