@@ -277,17 +277,6 @@ document.addEventListener('DOMContentLoaded', () => {
   themeSelector.value = savedTheme;
   themeSelector.addEventListener('change', changeTheme);
 
-  // Undo/Redo UI
-  const controls = document.createElement('div');
-  controls.className = 'controls';
-  controls.innerHTML = `
-    <button type="button" id="undo-btn" title="Deshacer">↩️</button>
-    <button type="button" id="redo-btn" title="Rehacer">↪️</button>
-  `;
-  document.body.appendChild(controls);
-  document.getElementById('undo-btn').onclick = undo;
-  document.getElementById('redo-btn').onclick = redo;
-
   // Eventos
   taskForm.addEventListener('submit', addTask);
   filterButtons.forEach(button => button.addEventListener('click', setFilter));
